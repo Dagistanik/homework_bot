@@ -3,8 +3,9 @@ import logging
 import requests
 import time
 from dotenv import load_dotenv
-import exception
+import exceptions
 import telegram
+# from logging.handlers import StreamHandler 
 ...
 
 load_dotenv()
@@ -25,6 +26,24 @@ HOMEWORK_STATUSES = {
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
 
+logging.basicConfig(
+    level=logging.DEBUG,
+    filename='main.log',
+    filemode='w',
+    format='%(asctime)s, %(levelname)s, %(name)s'
+)
+
+# logger = logging.getLogger(__name__)
+# logger.setLevel(logging.DEBUG)
+# handler = StreamHandler()
+# logger.addHandler(handler)
+
+# # Создаем форматер
+# formatter = logging.Formatter(
+#     '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+# )
+# # Применяем его к хэндлеру
+# handler.setFormatter(formatter)
 
 def send_message(bot, message):
     """Отправляет сообщение в Telegram чат."""
@@ -45,10 +64,11 @@ def get_api_answer(current_timestamp):
             response = requests.get(ENDPOINT, headers=HEADERS, params=params).json()
             return response
         else:
-            raise exception.Erbot('статус код не равен 200')
-    except exception.Erbot as error:
+            raise exceptions.Erbot('статус код не равен 200')
+    except exceptions.Erbot as error:
         inf = f'Недоступен путь:{error}'
         logging.error(inf)
+        raise exceptions.Erbot(inf)
 
   
 
@@ -60,7 +80,10 @@ def check_response(response):
         homeworks = response['homeworks']
         if type(homeworks) == list:
             return homeworks
-    raise exception.Erbot('Переменная response  не является словарём')
+        else:
+            raise TypeError('переменная homeworks не список')
+    else:
+        raise TypeError('Переменная response  не является словарём')
 
 
 def parse_status(homework):
@@ -70,11 +93,14 @@ def parse_status(homework):
     if homework_status in HOMEWORK_STATUSES:
         verdict = HOMEWORK_STATUSES.get(homework_status)
         return f'Изменился статус проверки работы "{homework_name}". {verdict}'
-    raise exception.Erbot('Нет таких статусов')
+    else:
+        raise KeyError('Нет таких статусов')
 
 def check_tokens():
     """Проверяет доступность переменных окружения"""
-    if 'PRACTICUM_TOKEN' and 'TELEGRAM_TOKEN' and 'TELEGRAM_CHAT_ID' in os.environ:
+    if TELEGRAM_TOKEN is not None or TELEGRAM_CHAT_ID is not None:
+        return True
+    if PRACTICUM_TOKEN is not None:
         return True
     else:
         return False
