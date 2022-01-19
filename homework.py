@@ -14,7 +14,8 @@ TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 RETRY_TIME = 600
-PRACTICUM_ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
+PRACTICUM_ENDPOINT = 'https://practicum.yandex.ru/api/user_api/' \
+    'homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
 HOMEWORK_STATUSES = {
@@ -46,7 +47,8 @@ def get_api_answer(current_timestamp):
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     try:
-        response = requests.get(PRACTICUM_ENDPOINT, headers=HEADERS, params=params)
+        response = requests.get(
+            PRACTICUM_ENDPOINT, headers=HEADERS, params=params)
         if response.status_code == HTTPStatus.OK:
             return response.json()
         else:
@@ -65,7 +67,7 @@ def check_response(response):
     if isinstance(response, dict):
         if isinstance(homeworks, list):
             return homeworks
-    else:   
+    else:
         error = 'переменная homeworks не список'
         logger.error(error)
         raise TypeError(error)
@@ -89,7 +91,7 @@ def parse_status(homework):
 
 def check_tokens():
     """Проверяет доступность переменных окружения."""
-    if (all([TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, PRACTICUM_TOKEN])) == True:
+    if (all([TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, PRACTICUM_TOKEN])):
         return True
     else:
         inf = 'Переменные телеграма недоступны:'
