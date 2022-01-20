@@ -14,9 +14,10 @@ TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 RETRY_TIME = 600
-PRACTICUM_ENDPOINT = 'https://practicum.yandex.ru/api/user_api/' \
-    'homework_statuses/'
-HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
+PRACTICUM_ENDPOINT = ('https://practicum.yandex.ru/api/user_api/'
+                      'homework_statuses/')
+
+PRACTICUM_HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
 HOMEWORK_STATUSES = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
@@ -48,11 +49,10 @@ def get_api_answer(current_timestamp):
     params = {'from_date': timestamp}
     try:
         response = requests.get(
-            PRACTICUM_ENDPOINT, headers=HEADERS, params=params)
+            PRACTICUM_ENDPOINT, headers=PRACTICUM_HEADERS, params=params)
         if response.status_code == HTTPStatus.OK:
             return response.json()
-        else:
-            raise exceptions.Erbot('статус код не равен 200')
+        raise exceptions.Erbot('статус код не равен 200')
     except requests.RequestException as error:
         inf = f'Недоступен путь:{error}'
         logger.error(inf)
@@ -61,16 +61,14 @@ def get_api_answer(current_timestamp):
 
 def check_response(response):
     """Проверка ответа API на корректность."""
+    if not isinstance(response, dict):
+        raise TypeError('response не является словарем')
+    if 'homeworks' not in response:
+        raise KeyError('ключа homework нет в response')
     homeworks = response['homeworks']
-    if not homeworks:
-        raise KeyError
-    if isinstance(response, dict):
-        if isinstance(homeworks, list):
-            return homeworks
-    else:
-        error = 'переменная homeworks не список'
-        logger.error(error)
-        raise TypeError(error)
+    if not isinstance(homeworks, list):
+        raise KeyError()
+    return homeworks
 
 
 def parse_status(homework):
@@ -78,9 +76,9 @@ def parse_status(homework):
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
     if not homework_status:
-        raise KeyError
+        raise KeyError('в домашней работе нет homework_status')
     if not homework_name:
-        raise KeyError
+        raise KeyError('в домашней работе нет homework_name')
     if homework_status in HOMEWORK_STATUSES:
         verdict = HOMEWORK_STATUSES.get(homework_status)
         return f'Изменился статус проверки работы "{homework_name}". {verdict}'
@@ -91,12 +89,11 @@ def parse_status(homework):
 
 def check_tokens():
     """Проверяет доступность переменных окружения."""
-    if (all([TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, PRACTICUM_TOKEN])):
+    if all([TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, PRACTICUM_TOKEN]):
         return True
-    else:
-        inf = 'Переменные телеграма недоступны:'
-        logger.critical(inf)
-        return False
+    inf = 'Переменные телеграма недоступны:'
+    logger.critical(inf)
+    return False
 
 
 def main():
@@ -121,7 +118,6 @@ def main():
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
         finally:
-            current_timestamp = int(time.time())
             time.sleep(RETRY_TIME)
 
 
